@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<script type="text/javascript" src="jquery-2.1.1.min.js"></script>
+	<script src="socket.io.js"></script>
+	<script src="webrtc.js"></script>
+
+	<title>Interactive Session</title>
+</head>
+
+<body>
+	<div class="video-call-container">
+		<video  id='localVideo' autoplay muted></video>
+		<video  id='remoteVideo' autoplay ></video>
+		<div style="text-align: center">
+			<input  class='btn' id="videoCallButton" type="button" disabled value="Call"/>
+			<input class="btn" id="endCallButton" type="button" disabled value="End Call"/>
+		</div>
+	</div>
+
+
+	<div>
+		<div class="chatwindow">
+		</div>
+		<form class="chat-form">
+			<input type="text">
+			<input type="submit" value='send'>
+		</form>
+	</div>
+
+	<script>window.addEventListener("load", pageReady);</script>
+	<script>
+		// send chat message.
+		$(".chat-form").submit(function (e) {
+			e.preventDefault();
+			var msg = $(".chat-form input").val()
+			if(!msg)
+				return
+			console.log(msg)
+			wsc.emit("message",msg)
+			var msgHtml = '<span class="right">'+msg+'</span>'
+			$(".chatwindow").append(msgHtml)
+			$(".chatwindow").scrollTop($(".chatwindow")[0].scrollHeight)
+			$(".chat-form input").val("")
+		});
+		// recieve chat message
+		wsc.on("message",function (msg) {
+			var msgHtml ="<span class='left'>"+msg+"</span>";
+			$(".chatwindow").append(msgHtml);
+			$(".chatwindow").scrollTop($(".chatwindow")[0].scrollHeight);
+		});
+
+		// create a call
+		$("#videoCallButton").click(function (e) {
+			e.preventDefault();
+			console.log("calling");
+			videoCallButton.setAttribute("disabled", true);
+			endCallButton.removeAttribute("disabled");
+
+			wsc.emit("call",{});
+		})
+
+		// end a call
+		$("#endCallButton").click(function (e) {
+			console.log("end call");
+			e.preventDefault();
+ 			wsc.emit("video",JSON.stringify({"closeConnection": true }));
+			wsc.emit("endCall",{})
+			endCall();
+			endCallButton.setAttribute("disabled", true);
+			videoCallButton.removeAttribute("disabled");
+		})
+
+		wsc.on("call",function () {
+			var response = confirm("Incoming Call");
+			if(response){
+				wsc.emit("acceptCall");
+
+				videoCallButton.setAttribute("disabled", true);
+				endCallButton.removeAttribute("disabled");
+				window.location.reload();
+
+			}
+			else
+				wsc.emit("endCall");
+		})
+
+		wsc.on("acceptCall",function(){
+			window.initiateCall();
+		});
+
+		wsc.on("endCall",function(){
+
+			endCallButton.setAttribute("disabled", true);
+			videoCallButton.removeAttribute("disabled");
+		});
+
+	</script>
+
+<style>
+.video-call-container{
+	padding:20px;
+}
+
+.video-call-container video {
+	background:#dddddd;
+	width:47%;
+	margin:1%;
+}
+
+.btn{
+    padding:8px 20px;
+    font-size:1.2em;
+    font-weight:bold;
+    outline: none;
+    color:#FFF;
+    border: none;
+    width:150px;
+}
+
+#videoCallButton{
+    background:green;
+}
+#endCallButton{
+    background:red;
+}
+.chatwindow{
+ border:1px solid #ddd;
+ height:250px;
+ overflow:scroll;
+}
+
+.chat-form input[type='text']{
+    width:80%;
+    padding:8px;
+
+}
+.chat-form input[type='submit']{
+    width:15%;
+    padding:8px;
+    margin-left:10px;
+    border:none;
+    background:#407fff;
+    color:#FFF;
+}
+span{
+    box-shadow:1px 1px 1px 1px rgba(0,0,0);
+    background:#72e472;
+    margin:20px;
+    padding:10px 20px;
+    clear:both;
+}
+span.right{
+	float:right;
+}
+span.left{
+	float:left;
+}
+
+</style>
+</body>
+</html>
